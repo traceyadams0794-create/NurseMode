@@ -1103,12 +1103,12 @@ function showView(name) {
 // CARTOON LESSON NAVIGATION
 // ============================================================
 const cartoonState = {};
+const cartoonData = {};
 function cartoonNav(cardIdx, dir) {
-  const cards = state.settings.shuffle ? shuffleArray([...FEED]) : [...FEED];
-  const card = cards[cardIdx];
+  const card = cartoonData[cardIdx];
   if (!card || !card.frames) return;
 
-  if (!cartoonState[cardIdx]) cartoonState[cardIdx] = 0;
+  if (cartoonState[cardIdx] === undefined) cartoonState[cardIdx] = 0;
   cartoonState[cardIdx] += dir;
   if (cartoonState[cardIdx] < 0) cartoonState[cardIdx] = 0;
   if (cartoonState[cardIdx] >= card.frames.length) cartoonState[cardIdx] = card.frames.length - 1;
@@ -1205,6 +1205,7 @@ function buildFeed() {
       : card.body;
 
     if (card.type === 'cartoon') {
+      cartoonData[i] = card;
       el.innerHTML = `
         <div class="feed-card-inner" style="--card-color:${color}">
           <div class="cartoon-label">🎬 Animated Lesson</div>

@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//usr/local/**)",
+      "Bash(/usr/bin/env node:*)",
+      "Bash(brew install:*)",
+      "Bash(/opt/homebrew/bin/brew install:*)",
+      "Bash(python3 -c \"import pdfminer; print\\(''pdfminer ok''\\)\")",
+      "Bash(python3 -c \"import PyPDF2; print\\(''PyPDF2 ok''\\)\")",
+      "Bash(python3 -c \"import pypdf; print\\(''pypdf ok''\\)\")",
+      "Bash(pip3 install:*)",
+      "Bash(python3 -c \":*)",
+      "Bash(python3:*)",
+      "Bash(node -c \"/Users/traceyadams/nursing app/data.js\")",
+      "Bash(/usr/local/bin/node -c \"/Users/traceyadams/nursing app/data.js\")",
+      "Bash(/opt/homebrew/bin/node -c \"/Users/traceyadams/nursing app/data.js\")"
+    ]
+  }
+}

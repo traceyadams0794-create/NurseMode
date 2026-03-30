@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="NurseMode" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>NurseMode</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <script src="data.js"></script>
+  <style>
+    /* ==================== RESET & BASE ==================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #334155;
+      --border: #475569;
+      --text: #f1f5f9;
+      --text2: #94a3b8;
+      --accent: #6366f1;
+      --accent2: #818cf8;
+      --green: #10b981;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --radius: 16px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    html, body {
+      height: 100%; width: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-font-smoothing: antialiased;
+    }
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    /* ==================== TOP BAR ==================== */
+    #topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: calc(var(--safe-top) + 12px) 20px 12px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--surface2);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    #topbar .logo {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #818cf8, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    #topbar .logo span { font-size: 22px; }
+    #streak-badge {
+      background: linear-gradient(135deg, var(--yellow), #fb923c);
+      color: #000;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    #progress-bar-wrap {
+      padding: 6px 20px;
+      background: var(--bg);
+      flex-shrink: 0;
+    }
+    #progress-bar-label {
+      font-size: 11px;
+      color: var(--text2);
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+    }
+    #progress-bar-track {
+      height: 4px;
+      background: var(--surface2);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    #progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #a78bfa);
+      border-radius: 2px;
+      transition: width 0.4s ease;
+      width: 0%;
+    }
+
+    /* ==================== CONTENT AREA ==================== */
+    #content {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ==================== VIEWS ==================== */
+    .view {
+      position: absolute;
+      inset: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      display: none;
+      padding-bottom: 20px;
+    }
+    .view.active { display: block; }
+
+    /* ==================== FEED ==================== */
+    #feed-view {
+      background: var(--bg);
+      scroll-snap-type: y mandatory;
+    }
+    .feed-card {
+      scroll-snap-align: start;
+      min-height: calc(100vh - 180px);
+      padding: 20px 20px 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      border-bottom: 1px solid var(--surface);
+    }
+    .feed-card-inner {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 24px 22px;
+      border: 1px solid var(--surface2);
+      position: relative;
+      overflow: hidden;
+    }
+    .feed-card-inner::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--card-color, var(--accent));
+    }
+    .feed-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--accent2);
+      margin-bottom: 10px;
+      background: rgba(99,102,241,0.15);
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .feed-title {
+      font-size: 22px;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 14px;
+      color: var(--text);
+    }
+    .feed-body {
+      font-size: 16px;
+      line-height: 1.65;
+      color: var(--text2);
+      white-space: pre-line;
+    }
+    .feed-body strong { color: var(--text); }
+    .nclex-choices {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .nclex-choice-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: var(--text);
+      font-size: 15px;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .nclex-choice-btn:active { background: rgba(99,102,241,0.3); }
+    .nclex-choice-btn.correct { background: rgba(16,185,129,0.2); border-color: var(--green); color: #6ee7b7; }
+    .nclex-choice-btn.incorrect { background: rgba(239,68,68,0.2); border-color: var(--red); }
+    .nclex-answer {
+      margin-top: 16px;
+      background: rgba(16,185,129,0.12);
+      border: 1px solid rgba(16,185,129,0.3);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 14px;
+      line-height: 1.55;
+      color: #a7f3d0;
+      display: none;
+      white-space: pre-line;
+    }
+    .feed-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 18px;
+      padding: 0 2px;
+    }
+    .feed-counter {
+      font-size: 12px;
+      color: var(--text2);
+    }
+    .feed-actions {
+      display: flex;
+      gap: 12px;
+    }
+    .feed-action-btn {
+      background: var(--surface2);
+      border: none;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--text2);
+      transition: background 0.15s;
+    }
+    .feed-action-btn:active, .feed-action-btn.saved { background: rgba(99,102,241,0.35); color: var(--accent2); }
+    .scroll-hint {
+      text-align: center;
+      padding: 14px;
+      color: var(--text2);
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    /* ==================== FLASHCARDS ==================== */
+    #decks-view {
+      padding: 16px;
+    }
+    .decks-header {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+    .decks-sub {
+      font-size: 13px;
+      color: var(--text2);
+      margin-bottom: 18px;
+    }
+    .deck-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .deck-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 18px 14px;
+      border: 1px solid var(--surface2);
+      cursor: pointer;
+      transition: transform 0.15s, border-color 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+    .deck-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--deck-color);
+    }
+    .deck-card:active { transform: scale(0.97); }
+    .deck-icon { font-size: 28px; margin-bottom: 8px; }
+    .deck-name { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.3; }
+    .deck-count { font-size: 11px; color: var(--text2); margin-top: 4px; }
+    .deck-progress-bar {
+      margin-top: 8px;
+      height: 3px;
+      background: var(--surface2);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .deck-progress-fill {
+      height: 100%;
+      background: var(--deck-color);
+      border-radius: 2px;
+      transition: width 0.3s;
+    }
+
+    /* ==================== FLASHCARD STUDY ==================== */
+    #study-view {
+      background: var(--bg);
+    }
+    #study-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--surface2);
+      flex-shrink: 0;
+    }
+    #back-btn {
+      background: var(--surface);
+      border: none;
+      color: var(--text);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #study-title { font-size: 16px; font-weight: 700; flex: 1; }
+    #study-progress-text { font-size: 13px; color: var(--text2); }
+    #study-progress-bar-wrap {
+      padding: 0 20px 12px;
+      background: var(--bg);
+    }
+    #study-progress-track {
+      height: 4px;
+      background: var(--surface2);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    #study-progress-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.3s;
+    }
+    #flashcard-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 20px 20px 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .flashcard {
+      width: 100%;
+      max-width: 460px;
+      perspective: 1200px;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+    .flashcard-inner {
+      position: relative;
+      width: 100%;
+      transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      transform-style: preserve-3d;
+    }
+    .flashcard.flipped .flashcard-inner {
+      transform: rotateY(180deg);
+    }
+    .flashcard-front, .flashcard-back {
+      width: 100%;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      border: 1px solid var(--surface2);
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    .flashcard-back {
+      position: absolute;
+      top: 0; left: 0;
+      transform: rotateY(180deg);
+      background: var(--surface);
+      border-color: var(--accent);
+      text-align: left;
+      align-items: flex-start;
+    }
+    .card-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text2);
+      margin-bottom: 14px;
+    }
+    .card-q {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.4;
+      color: var(--text);
+    }
+    .card-a {
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--text2);
+      white-space: pre-line;
+    }
+    .card-a strong { color: var(--text); }
+    .tap-hint {
+      font-size: 12px;
+      color: var(--text2);
+      margin-top: 12px;
+      text-align: center;
+    }
+    .card-buttons {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      max-width: 460px;
+      padding: 0 0 20px;
+    }
+    .card-btn {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .card-btn:active { opacity: 0.8; }
+    .card-btn.again { background: rgba(239,68,68,0.2); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+    .card-btn.good { background: rgba(16,185,129,0.2); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.3); }
+    .card-btn.easy { background: rgba(99,102,241,0.2); color: var(--accent2); border: 1px solid rgba(99,102,241,0.3); }
+    .card-buttons-placeholder { display: flex; gap: 12px; width: 100%; max-width: 460px; height: 52px; }
+    .deck-complete {
+      text-align: center;
+      padding: 40px 24px;
+    }
+    .deck-complete-emoji { font-size: 64px; margin-bottom: 16px; }
+    .deck-complete h2 { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
+    .deck-complete p { color: var(--text2); font-size: 15px; margin-bottom: 28px; line-height: 1.5; }
+    .restart-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 28px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .stats-row {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+    .stat-box {
+      background: var(--surface);
+      border: 1px solid var(--surface2);
+      border-radius: 12px;
+      padding: 14px 20px;
+      text-align: center;
+    }
+    .stat-num { font-size: 28px; font-weight: 800; }
+    .stat-label { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+    /* ==================== SEARCH/SAVED ==================== */
+    #saved-view {
+      padding: 16px;
+    }
+    .saved-empty {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--text2);
+    }
+    .saved-empty .emoji { font-size: 48px; margin-bottom: 12px; }
+    .saved-item {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 10px;
+      border: 1px solid var(--surface2);
+      cursor: pointer;
+    }
+    .saved-item-tag { font-size: 11px; color: var(--accent2); font-weight: 600; margin-bottom: 4px; }
+    .saved-item-title { font-size: 15px; font-weight: 700; }
+
+    /* ==================== VIDEO LESSONS ==================== */
+    #videos-view { padding: 16px; }
+    .videos-header { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+    .videos-sub { font-size: 13px; color: var(--text2); margin-bottom: 18px; }
+    .video-category { margin-bottom: 24px; }
+    .video-category-title {
+      font-size: 14px; font-weight: 700; letter-spacing: 0.5px;
+      text-transform: uppercase; color: var(--accent2); margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .video-scroll {
+      display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px;
+      -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory;
+    }
+    .video-scroll::-webkit-scrollbar { height: 0; }
+    .video-card {
+      min-width: 260px; max-width: 260px; scroll-snap-align: start;
+      background: var(--surface); border-radius: var(--radius);
+      border: 1px solid var(--surface2); overflow: hidden; cursor: pointer;
+      transition: transform 0.15s; flex-shrink: 0;
+    }
+    .video-card:active { transform: scale(0.97); }
+    .video-thumb {
+      width: 100%; aspect-ratio: 16/9; background: var(--surface2);
+      display: flex; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+    .video-thumb img {
+      width: 100%; height: 100%; object-fit: cover;
+    }
+    .video-play-icon {
+      position: absolute; font-size: 40px;
+      background: rgba(0,0,0,0.6); border-radius: 50%;
+      width: 52px; height: 52px; display: flex;
+      align-items: center; justify-content: center;
+    }
+    .video-info { padding: 12px 14px; }
+    .video-title { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.3; margin-bottom: 4px; }
+    .video-meta { font-size: 11px; color: var(--text2); display: flex; gap: 8px; }
+    .video-player-wrap {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+      z-index: 200; display: none; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .video-player-wrap.open { display: flex; }
+    .video-player-close {
+      position: absolute; top: calc(var(--safe-top) + 12px); right: 16px;
+      background: var(--surface2); border: none; color: var(--text);
+      width: 36px; height: 36px; border-radius: 50%; font-size: 20px;
+      cursor: pointer; z-index: 201; display: flex;
+      align-items: center; justify-content: center;
+    }
+    .video-player-frame {
+      width: 100%; max-width: 500px; aspect-ratio: 16/9;
+      border: none; border-radius: 12px;
+    }
+    .video-player-title {
+      color: var(--text); font-size: 15px; font-weight: 700;
+      text-align: center; padding: 16px 20px; max-width: 500px;
+    }
+
+    /* ==================== SETTINGS ==================== */
+    #settings-view {
+      padding: 16px;
+    }
+    .settings-header { font-size: 20px; font-weight: 800; margin-bottom: 16px; }
+    .settings-section { margin-bottom: 24px; }
+    .settings-label { font-size: 12px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text2); margin-bottom: 10px; }
+    .settings-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--surface2);
+      overflow: hidden;
+    }
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--surface2);
+    }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-row-label { font-size: 15px; }
+    .settings-row-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+    .toggle {
+      width: 48px;
+      height: 28px;
+      background: var(--surface2);
+      border-radius: 14px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .toggle.on { background: var(--accent); }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      background: white;
+      border-radius: 50%;
+      top: 3px;
+      left: 3px;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    .toggle.on::after { transform: translateX(20px); }
+    .stats-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--surface2);
+      padding: 20px;
+    }
+    .big-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 0;
+    }
+    .big-stat {
+      text-align: center;
+      padding: 12px 8px;
+      background: var(--surface2);
+      border-radius: 10px;
+    }
+    .big-stat-num { font-size: 24px; font-weight: 800; color: var(--accent2); }
+    .big-stat-label { font-size: 10px; color: var(--text2); margin-top: 2px; line-height: 1.3; }
+
+    /* ==================== BOTTOM NAV ==================== */
+    #bottom-nav {
+      display: flex;
+      background: var(--bg);
+      border-top: 1px solid var(--surface2);
+      padding: 8px 0 calc(var(--safe-bottom) + 8px);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .nav-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px 0;
+      color: var(--text2);
+      transition: color 0.15s;
+    }
+    .nav-btn.active { color: var(--accent2); }
+    .nav-icon { font-size: 22px; line-height: 1; }
+    .nav-label { font-size: 10px; font-weight: 600; }
+
+    /* ==================== MODAL ==================== */
+    #modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 100;
+      display: none;
+      align-items: flex-end;
+      backdrop-filter: blur(4px);
+    }
+    #modal-overlay.open { display: flex; }
+    #modal {
+      background: var(--surface);
+      border-radius: 24px 24px 0 0;
+      padding: 24px 24px calc(var(--safe-bottom) + 24px);
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+      border: 1px solid var(--surface2);
+    }
+    .modal-handle {
+      width: 36px; height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 0 auto 20px;
+    }
+    .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 12px; }
+    .modal-body { font-size: 15px; color: var(--text2); line-height: 1.65; white-space: pre-line; }
+    .modal-close {
+      margin-top: 20px;
+      width: 100%;
+      padding: 14px;
+      background: var(--surface2);
+      border: none;
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* ==================== ANIMATIONS ==================== */
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .fade-in { animation: fadeIn 0.25s ease forwards; }
+    @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
+    .pop { animation: pop 0.2s ease; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 2px; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <div class="logo"><span>🩺</span> NurseMode</div>
+    <div id="streak-badge">🔥 <span id="streak-count">0</span> day streak</div>
+  </div>
+
+  <!-- PROGRESS BAR (shown on feed) -->
+  <div id="progress-bar-wrap">
+    <div id="progress-bar-label">
+      <span id="progress-label-text">Daily progress</span>
+      <span id="progress-count">0 / 5 cards</span>
+    </div>
+    <div id="progress-bar-track">
+      <div id="progress-bar-fill"></div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="content">
+    <!-- FEED VIEW -->
+    <div id="feed-view" class="view active"></div>
+
+    <!-- DECKS VIEW -->
+    <div id="decks-view" class="view">
+      <div class="decks-header">Flashcard Decks</div>
+      <div class="decks-sub">Tap a deck to start studying</div>
+      <div class="deck-grid" id="deck-grid"></div>
+    </div>
+
+    <!-- STUDY VIEW (individual deck) -->
+    <div id="study-view" class="view">
+      <div id="study-header">
+        <button id="back-btn" onclick="exitStudy()">←</button>
+        <div id="study-title">Deck</div>
+        <div id="study-progress-text">1 / 15</div>
+      </div>
+      <div id="study-progress-bar-wrap">
+        <div id="study-progress-track">
+          <div id="study-progress-fill"></div>
+        </div>
+      </div>
+      <div id="flashcard-area"></div>
+    </div>
+
+    <!-- VIDEO LESSONS VIEW -->
+    <div id="videos-view" class="view">
+      <div class="videos-header">Video Lessons</div>
+      <div class="videos-sub">Short explainers on tough nursing concepts</div>
+      <div id="video-list"></div>
+    </div>
+
+    <!-- SAVED VIEW -->
+    <div id="saved-view" class="view">
+      <div style="font-size:20px;font-weight:800;margin-bottom:4px;">Saved Cards</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:18px;">Cards you bookmarked from the feed</div>
+      <div id="saved-list"></div>
+    </div>
+
+    <!-- SETTINGS VIEW -->
+    <div id="settings-view" class="view">
+      <div class="settings-header">Stats & Settings</div>
+
+      <div class="settings-section">
+        <div class="settings-label">Your Progress</div>
+        <div class="stats-card">
+          <div class="big-stats">
+            <div class="big-stat">
+              <div class="big-stat-num" id="stat-cards">0</div>
+              <div class="big-stat-label">Cards Reviewed</div>
+            </div>
+            <div class="big-stat">
+              <div class="big-stat-num" id="stat-streak">0</div>
+              <div class="big-stat-label">Day Streak</div>
+            </div>
+            <div class="big-stat">
+              <div class="big-stat-num" id="stat-correct">0%</div>
+              <div class="big-stat-label">Accuracy</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-label">Preferences</div>
+        <div class="settings-card">
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-label">Shuffle Feed Cards</div>
+              <div class="settings-row-sub">Randomize the scroll feed order</div>
+            </div>
+            <div class="toggle on" id="toggle-shuffle" onclick="toggleSetting('shuffle')"></div>
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-label">Show Answer Rationales</div>
+              <div class="settings-row-sub">Display explanations on NCLEX questions</div>
+            </div>
+            <div class="toggle on" id="toggle-rationale" onclick="toggleSetting('rationale')"></div>
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-label">Daily Goal</div>
+              <div class="settings-row-sub">Cards per day</div>
+            </div>
+            <select id="daily-goal-select" onchange="setDailyGoal(this.value)" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:14px;">
+              <option value="5">5 cards</option>
+              <option value="10" selected>10 cards</option>
+              <option value="20">20 cards</option>
+              <option value="30">30 cards</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-label">Actions</div>
+        <div class="settings-card">
+          <div class="settings-row" style="cursor:pointer" onclick="resetProgress()">
+            <div>
+              <div class="settings-row-label" style="color:var(--red)">Reset Progress</div>
+              <div class="settings-row-sub">Clear all stats and progress</div>
+            </div>
+            <div style="color:var(--text2)">›</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align:center;color:var(--text2);font-size:12px;margin-top:8px;">
+        NurseMode v1.0 — Built for Tracey 🩺<br>
+        <span style="opacity:0.6">Content based on NCLEX-RN preparation materials</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div id="bottom-nav">
+    <button class="nav-btn active" id="nav-feed" onclick="showView('feed')">
+      <div class="nav-icon">📱</div>
+      <div class="nav-label">Feed</div>
+    </button>
+    <button class="nav-btn" id="nav-decks" onclick="showView('decks')">
+      <div class="nav-icon">📚</div>
+      <div class="nav-label">Cards</div>
+    </button>
+    <button class="nav-btn" id="nav-videos" onclick="showView('videos')">
+      <div class="nav-icon">🎬</div>
+      <div class="nav-label">Videos</div>
+    </button>
+    <button class="nav-btn" id="nav-saved" onclick="showView('saved')">
+      <div class="nav-icon">🔖</div>
+      <div class="nav-label">Saved</div>
+    </button>
+    <button class="nav-btn" id="nav-settings" onclick="showView('settings')">
+      <div class="nav-icon">📊</div>
+      <div class="nav-label">Stats</div>
+    </button>
+  </div>
+</div>
+
+<!-- VIDEO PLAYER -->
+<div class="video-player-wrap" id="video-player-wrap">
+  <button class="video-player-close" onclick="closeVideo()">✕</button>
+  <iframe class="video-player-frame" id="video-player-frame" src="" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+  <div class="video-player-title" id="video-player-title"></div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay" onclick="closeModal(event)">
+  <div id="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-body" id="modal-body"></div>
+    <button class="modal-close" onclick="closeModalDirect()">Close</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let state = {
+  currentView: 'feed',
+  currentDeck: null,
+  currentCardIndex: 0,
+  cardFlipped: false,
+  savedCards: [],
+  settings: { shuffle: true, rationale: true, dailyGoal: 10 },
+  stats: { cardsReviewed: 0, correct: 0, total: 0, lastDate: null, streak: 0 },
+  deckProgress: {},
+  feedCardsSeen: 0,
+  answers: {}
+};
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem('nursemode');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      state = { ...state, ...parsed };
+    }
+  } catch(e) {}
+}
+
+function saveState() {
+  try {
+    localStorage.setItem('nursemode', JSON.stringify(state));
+  } catch(e) {}
+}
+
+// ============================================================
+// STREAK
+// ============================================================
+function updateStreak() {
+  const today = new Date().toDateString();
+  if (state.stats.lastDate === today) return;
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  if (state.stats.lastDate === yesterday) {
+    state.stats.streak = (state.stats.streak || 0) + 1;
+  } else if (state.stats.lastDate !== today) {
+    state.stats.streak = 1;
+  }
+  state.stats.lastDate = today;
+  saveState();
+  renderStreak();
+}
+
+function renderStreak() {
+  document.getElementById('streak-count').textContent = state.stats.streak || 0;
+}
+
+// ============================================================
+// VIEW NAVIGATION
+// ============================================================
+function showView(name) {
+  if (name === 'decks' && state.currentView === 'study') {
+    // Going back to decks from study
+  }
+  if (name !== 'study') {
+    state.currentView = name;
+  }
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+
+  if (name === 'study') {
+    document.getElementById('study-view').classList.add('active');
+  } else {
+    document.getElementById(name + '-view').classList.add('active');
+    const navBtn = document.getElementById('nav-' + name);
+    if (navBtn) navBtn.classList.add('active');
+  }
+
+  // Special rendering
+  if (name === 'saved') renderSaved();
+  if (name === 'settings') renderSettings();
+  if (name === 'decks') renderDecks();
+  if (name === 'videos') renderVideos();
+  updateProgressBar();
+}
+
+// ============================================================
+// FEED
+// ============================================================
+function buildFeed() {
+  const container = document.getElementById('feed-view');
+  container.innerHTML = '';
+
+  let cards = [...FEED];
+  if (state.settings.shuffle) cards = shuffleArray(cards);
+
+  const tagColors = {
+    'NCLEX Strategy': '#6366f1',
+    'Memory Trick': '#8b5cf6',
+    'NCLEX Question': '#ef4444',
+    'Pharmacology': '#10b981',
+    'Med-Surg': '#0ea5e9',
+    'OB/Maternity': '#ec4899',
+    'Pediatrics': '#f97316',
+    'Fundamentals': '#6366f1',
+    'Mental Health': '#8b5cf6',
+    'Community Health': '#14b8a6',
+    'Critical Care': '#ef4444',
+  };
+
+  cards.forEach((card, i) => {
+    const color = tagColors[card.tag] || '#6366f1';
+    const el = document.createElement('div');
+    el.className = 'feed-card';
+    el.dataset.index = i;
+
+    let choicesHTML = '';
+    if (card.type === 'nclex' && card.choices && card.choices.length > 0) {
+      choicesHTML = `<div class="nclex-choices">` +
+        card.choices.map((c, ci) => {
+          const letter = ['A','B','C','D'][ci];
+          const text = card.body.split('\n').filter(l => l.startsWith(c + ')')).map(l => l.slice(3)).join('') ||
+                       card.body.split('\n').filter(l => l.startsWith(letter + ')')).map(l => l.slice(3)).join('') || c;
+          return `<button class="nclex-choice-btn" onclick="answerChoice(this, '${letter}', ${i}, '${card.answer.charAt(0)}')">${letter}) ${text.trim() || c}</button>`;
+        }).join('') +
+        `</div>`;
+    }
+
+    const answerDiv = card.type === 'nclex'
+      ? `<div class="nclex-answer" id="feed-answer-${i}">${card.answer || ''}</div>`
+      : '';
+
+    const isSaved = state.savedCards.some(s => s.index === i);
+    const bodyText = card.type === 'nclex' && card.choices && card.choices.length > 0
+      ? card.body.split('\n')[0]  // just the question part, choices rendered separately
+      : card.body;
+
+    el.innerHTML = `
+      <div class="feed-card-inner" style="--card-color:${color}">
+        <div class="feed-tag">${card.icon} ${card.tag}</div>
+        <div class="feed-title">${card.title}</div>
+        <div class="feed-body">${bodyText}</div>
+        ${choicesHTML}
+        ${answerDiv}
+        <div class="feed-bottom">
+          <div class="feed-counter">Card ${i+1} of ${cards.length}</div>
+          <div class="feed-actions">
+            <button class="feed-action-btn ${isSaved ? 'saved' : ''}" id="save-btn-${i}" onclick="toggleSave(${i}, this)" title="Save">🔖</button>
+          </div>
+        </div>
+      </div>
+    `;
+    container.appendChild(el);
+  });
+
+  // End card
+  const end = document.createElement('div');
+  end.className = 'feed-card';
+  end.innerHTML = `
+    <div class="feed-card-inner" style="text-align:center;--card-color:#6366f1">
+      <div style="font-size:48px;margin-bottom:12px;">🎉</div>
+      <div class="feed-title">You finished the feed!</div>
+      <div class="feed-body" style="text-align:center">You've seen all ${cards.length} cards. Head to Flashcards to keep studying or scroll back up to review.</div>
+      <div style="margin-top:20px">
+        <button onclick="showView('decks')" style="background:var(--accent);color:#fff;border:none;border-radius:12px;padding:14px 24px;font-size:16px;font-weight:700;cursor:pointer;width:100%">Study Flashcards →</button>
+      </div>
+    </div>
+  `;
+  container.appendChild(end);
+
+  // Scroll observer for progress
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const idx = parseInt(entry.target.dataset.index);
+        if (!isNaN(idx)) markFeedCardSeen(idx);
+      }
+    });
+  }, { threshold: 0.5 });
+
+  container.querySelectorAll('.feed-card[data-index]').forEach(c => observer.observe(c));
+}
+
+function markFeedCardSeen(idx) {
+  if (!state.seenFeedCards) state.seenFeedCards = {};
+  if (!state.seenFeedCards[idx]) {
+    state.seenFeedCards[idx] = true;
+    state.stats.cardsReviewed = (state.stats.cardsReviewed || 0) + 1;
+    state.feedCardsSeen = Object.keys(state.seenFeedCards).length;
+    updateStreak();
+    saveState();
+    updateProgressBar();
+  }
+}
+
+function updateProgressBar() {
+  const goal = state.settings.dailyGoal || 10;
+  const seen = state.feedCardsSeen || 0;
+  const pct = Math.min(100, Math.round((seen / goal) * 100));
+  document.getElementById('progress-bar-fill').style.width = pct + '%';
+  document.getElementById('progress-count').textContent = `${Math.min(seen, goal)} / ${goal} cards`;
+}
+
+function answerChoice(btn, selected, cardIndex, correctLetter) {
+  const container = btn.closest('.nclex-choices');
+  if (container.dataset.answered) return;
+  container.dataset.answered = '1';
+  state.stats.total = (state.stats.total || 0) + 1;
+
+  Array.from(container.children).forEach(b => {
+    const letter = b.textContent.trim().charAt(0);
+    b.disabled = true;
+    if (letter === correctLetter) b.classList.add('correct');
+    else if (b === btn) b.classList.add('incorrect');
+  });
+
+  if (selected === correctLetter) {
+    state.stats.correct = (state.stats.correct || 0) + 1;
+  }
+
+  if (state.settings.rationale) {
+    const answerEl = document.getElementById('feed-answer-' + cardIndex);
+    if (answerEl) { answerEl.style.display = 'block'; answerEl.classList.add('fade-in'); }
+  }
+
+  saveState();
+}
+
+function toggleSave(index, btn) {
+  const alreadySaved = state.savedCards.some(s => s.index === index);
+  if (alreadySaved) {
+    state.savedCards = state.savedCards.filter(s => s.index !== index);
+    btn.classList.remove('saved');
+  } else {
+    state.savedCards.push({ index });
+    btn.classList.add('saved');
+    btn.classList.add('pop');
+    setTimeout(() => btn.classList.remove('pop'), 300);
+  }
+  saveState();
+}
+
+// ============================================================
+// DECKS
+// ============================================================
+// ============================================================
+// VIDEOS
+// ============================================================
+function renderVideos() {
+  const container = document.getElementById('video-list');
+  if (container.children.length > 0) return;
+  container.innerHTML = '';
+
+  if (typeof VIDEOS === 'undefined') return;
+
+  VIDEOS.forEach(cat => {
+    const section = document.createElement('div');
+    section.className = 'video-category';
+    section.innerHTML = `
+      <div class="video-category-title">${cat.icon} ${cat.category}</div>
+      <div class="video-scroll">
+        ${cat.items.map(v => `
+          <div class="video-card" onclick="openVideo('${v.title.replace(/'/g,"\\'")}', '${v.channel.replace(/'/g,"\\'")}')">
+            <div class="video-thumb" style="background:linear-gradient(135deg,var(--surface2),var(--accent));display:flex;align-items:center;justify-content:center;min-height:100px;">
+              <div class="video-play-icon" style="font-size:2rem;">▶</div>
+            </div>
+            <div class="video-info">
+              <div class="video-title">${v.title}</div>
+              <div class="video-meta">
+                <span>${v.channel}</span>
+                <span>${v.duration}</span>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    container.appendChild(section);
+  });
+}
+
+function openVideo(title, channel) {
+  const query = encodeURIComponent(title + ' ' + channel);
+  window.open('https://www.youtube.com/results?search_query=' + query, '_blank');
+}
+
+function playVideo(id, title) {
+  const query = encodeURIComponent(title);
+  window.open('https://www.youtube.com/results?search_query=' + query, '_blank');
+}
+
+function closeVideo() {
+  // kept for compatibility
+}
+
+// ============================================================
+// DECKS
+// ============================================================
+function renderDecks() {
+  const grid = document.getElementById('deck-grid');
+  grid.innerHTML = '';
+  Object.entries(DECKS).forEach(([key, deck]) => {
+    const progress = state.deckProgress[key] || { seen: 0 };
+    const pct = Math.round((progress.seen / deck.cards.length) * 100);
+    const el = document.createElement('div');
+    el.className = 'deck-card';
+    el.style.cssText = `--deck-color:${deck.color}`;
+    el.onclick = () => startDeck(key);
+    el.innerHTML = `
+      <div class="deck-icon">${deck.icon}</div>
+      <div class="deck-name">${deck.name}</div>
+      <div class="deck-count">${deck.cards.length} cards</div>
+      <div class="deck-progress-bar">
+        <div class="deck-progress-fill" style="width:${pct}%;background:${deck.color}"></div>
+      </div>
+    `;
+    grid.appendChild(el);
+  });
+}
+
+// ============================================================
+// STUDY
+// ============================================================
+let studyQueue = [];
+let studyStats = { again: 0, good: 0, easy: 0 };
+let studyDeckKey = null;
+
+function startDeck(key) {
+  studyDeckKey = key;
+  const deck = DECKS[key];
+  studyQueue = shuffleArray([...deck.cards.map((c,i) => ({...c, origIndex: i}))]);
+  studyStats = { again: 0, good: 0, easy: 0 };
+  state.currentCardIndex = 0;
+  state.cardFlipped = false;
+
+  document.getElementById('study-title').textContent = deck.icon + ' ' + deck.name;
+  document.getElementById('study-progress-fill').style.background = deck.color;
+
+  showView('study');
+  renderStudyCard();
+}
+
+function renderStudyCard() {
+  const area = document.getElementById('flashcard-area');
+  const total = studyQueue.length;
+  const idx = state.currentCardIndex;
+
+  if (idx >= total) {
+    // Complete
+    const accuracy = total > 0 ? Math.round(((studyStats.good + studyStats.easy) / total) * 100) : 0;
+    area.innerHTML = `
+      <div class="deck-complete fade-in">
+        <div class="deck-complete-emoji">🎉</div>
+        <h2>Deck Complete!</h2>
+        <p>You finished all ${total} cards in this deck.</p>
+        <div class="stats-row">
+          <div class="stat-box">
+            <div class="stat-num" style="color:var(--red)">${studyStats.again}</div>
+            <div class="stat-label">Again</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num" style="color:var(--green)">${studyStats.good}</div>
+            <div class="stat-label">Good</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num" style="color:var(--accent2)">${studyStats.easy}</div>
+            <div class="stat-label">Easy</div>
+          </div>
+        </div>
+        <p style="font-size:18px;font-weight:800;color:var(--accent2)">${accuracy}% accuracy</p>
+        <div style="display:flex;gap:12px;margin-top:20px">
+          <button class="restart-btn" style="background:var(--surface2);color:var(--text)" onclick="exitStudy()">← Decks</button>
+          <button class="restart-btn" onclick="startDeck('${studyDeckKey}')">Restart 🔄</button>
+        </div>
+      </div>
+    `;
+    // update deck progress
+    if (!state.deckProgress[studyDeckKey]) state.deckProgress[studyDeckKey] = {};
+    state.deckProgress[studyDeckKey].seen = total;
+    state.stats.cardsReviewed = (state.stats.cardsReviewed || 0) + total;
+    updateStreak();
+    saveState();
+    return;
+  }
+
+  const card = studyQueue[idx];
+  const progressPct = Math.round((idx / total) * 100);
+  document.getElementById('study-progress-text').textContent = `${idx + 1} / ${total}`;
+  document.getElementById('study-progress-fill').style.width = progressPct + '%';
+
+  area.innerHTML = `
+    <div class="flashcard fade-in" id="flashcard" onclick="flipCard()">
+      <div class="flashcard-inner">
+        <div class="flashcard-front">
+          <div class="card-label">Question — tap to reveal</div>
+          <div class="card-q">${card.q}</div>
+        </div>
+        <div class="flashcard-back">
+          <div class="card-label">Answer</div>
+          <div class="card-a">${card.a}</div>
+        </div>
+      </div>
+    </div>
+    <div class="tap-hint" id="tap-hint">Tap the card to flip it</div>
+    <div id="card-buttons-placeholder" class="card-buttons-placeholder"></div>
+  `;
+  state.cardFlipped = false;
+}
+
+function flipCard() {
+  const card = document.getElementById('flashcard');
+  if (!card) return;
+  card.classList.toggle('flipped');
+  state.cardFlipped = !state.cardFlipped;
+
+  if (state.cardFlipped) {
+    document.getElementById('tap-hint').textContent = 'How did you do?';
+    const placeholder = document.getElementById('card-buttons-placeholder');
+    placeholder.outerHTML = `
+      <div class="card-buttons fade-in">
+        <button class="card-btn again" onclick="rateCard('again')">Again 🔁</button>
+        <button class="card-btn good" onclick="rateCard('good')">Good ✓</button>
+        <button class="card-btn easy" onclick="rateCard('easy')">Easy ⭐</button>
+      </div>
+    `;
+  }
+}
+
+function rateCard(rating) {
+  studyStats[rating]++;
+  if (rating === 'again') {
+    // Put card back near the end of queue
+    const card = studyQueue[state.currentCardIndex];
+    studyQueue.push(card);
+  }
+  state.currentCardIndex++;
+  state.cardFlipped = false;
+  renderStudyCard();
+}
+
+function exitStudy() {
+  showView('decks');
+}
+
+// ============================================================
+// SAVED
+// ============================================================
+function renderSaved() {
+  const list = document.getElementById('saved-list');
+  if (!state.savedCards || state.savedCards.length === 0) {
+    list.innerHTML = `
+      <div class="saved-empty">
+        <div class="emoji">🔖</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:6px">No saved cards yet</div>
+        <div style="font-size:14px">Tap the 🔖 button on any feed card to save it here</div>
+      </div>`;
+    return;
+  }
+  list.innerHTML = '';
+  const feedCards = [...FEED];
+  if (state.settings.shuffle) {
+    // Saved cards store original indices — just show them
+  }
+  state.savedCards.forEach(saved => {
+    const card = feedCards[saved.index % feedCards.length];
+    if (!card) return;
+    const el = document.createElement('div');
+    el.className = 'saved-item';
+    el.innerHTML = `
+      <div class="saved-item-tag">${card.icon} ${card.tag}</div>
+      <div class="saved-item-title">${card.title}</div>
+    `;
+    el.onclick = () => openModal(card.title, card.body + (card.answer ? '\n\n✅ ' + card.answer : ''));
+    list.appendChild(el);
+  });
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function renderSettings() {
+  document.getElementById('stat-cards').textContent = state.stats.cardsReviewed || 0;
+  document.getElementById('stat-streak').textContent = state.stats.streak || 0;
+  const acc = state.stats.total > 0 ? Math.round((state.stats.correct / state.stats.total) * 100) : 0;
+  document.getElementById('stat-correct').textContent = acc + '%';
+  document.getElementById('toggle-shuffle').className = 'toggle ' + (state.settings.shuffle ? 'on' : '');
+  document.getElementById('toggle-rationale').className = 'toggle ' + (state.settings.rationale ? 'on' : '');
+  const goalSel = document.getElementById('daily-goal-select');
+  if (goalSel) goalSel.value = state.settings.dailyGoal || 10;
+}
+
+function toggleSetting(key) {
+  state.settings[key] = !state.settings[key];
+  saveState();
+  renderSettings();
+}
+
+function setDailyGoal(val) {
+  state.settings.dailyGoal = parseInt(val);
+  saveState();
+  updateProgressBar();
+}
+
+function resetProgress() {
+  if (confirm('Reset all progress? This cannot be undone.')) {
+    state.stats = { cardsReviewed: 0, correct: 0, total: 0, lastDate: null, streak: 0 };
+    state.deckProgress = {};
+    state.seenFeedCards = {};
+    state.feedCardsSeen = 0;
+    state.savedCards = [];
+    saveState();
+    renderSettings();
+    updateProgressBar();
+    renderStreak();
+    alert('Progress reset!');
+  }
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function openModal(title, body) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').textContent = body;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModalDirect();
+}
+
+function closeModalDirect() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+  loadState();
+  updateStreak();
+  buildFeed();
+  renderDecks();
+  updateProgressBar();
+}
+
+init();
+</script>
+</body>
+</html>

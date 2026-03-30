@@ -1138,19 +1138,27 @@ function buildFeed() {
   const container = document.getElementById('feed-view');
   container.innerHTML = '';
 
-  // Separate cartoons and regular cards, then intersperse cartoons every ~5 cards
+  // Separate cartoons (pharm then priority) and regular cards
   let regular = FEED.filter(c => c.type !== 'cartoon');
-  let cartoons = FEED.filter(c => c.type === 'cartoon');
+  let pharmCartoons = FEED.filter(c => c.type === 'cartoon' && c.tag === 'Pharm Cartoon');
+  let priorityCartoons = FEED.filter(c => c.type === 'cartoon' && c.tag === 'Priority Cartoon');
   if (state.settings.shuffle) regular = shuffleArray(regular);
+  // Place pharm cartoons in first half, priority in second half
   let cards = [];
-  let ci = 0;
+  let pi = 0, pri = 0;
+  let pharmSpot = Math.floor(regular.length * 0.15);  // start pharm ~15% in
+  let priorSpot = Math.floor(regular.length * 0.55);   // start priority ~55% in
   regular.forEach((card, i) => {
-    cards.push(card);
-    if ((i + 1) % 5 === 0 && ci < cartoons.length) {
-      cards.push(cartoons[ci++]);
+    // Insert pharm cartoons in a block
+    if (i === pharmSpot && pi < pharmCartoons.length) {
+      while (pi < pharmCartoons.length) cards.push(pharmCartoons[pi++]);
     }
+    // Insert priority cartoons in a block
+    if (i === priorSpot && pri < priorityCartoons.length) {
+      while (pri < priorityCartoons.length) cards.push(priorityCartoons[pri++]);
+    }
+    cards.push(card);
   });
-  while (ci < cartoons.length) cards.push(cartoons[ci++]);
 
   const tagColors = {
     'NCLEX Strategy': '#6366f1',

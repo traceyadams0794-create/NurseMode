@@ -1,4 +1,4 @@
-const CACHE = 'nursemode-v1';
+const CACHE = 'nursemode-v2';
 const FILES = ['/', '/index.html', '/data.js', '/icon.svg', '/manifest.json'];
 
 self.addEventListener('install', e => {
